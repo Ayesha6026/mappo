@@ -57,7 +57,7 @@ class ShareVecEnv(ABC):
         pass
 
     @abstractmethod
-    def step_async(self, actions):
+    def step_async(self, LeftActions, RightActions):
         """
         Tell all the environments to start taking a step
         with the given actions.
@@ -97,13 +97,13 @@ class ShareVecEnv(ABC):
         self.close_extras()
         self.closed = True
 
-    def step(self, actions):
+    def step(self, LeftActions, RightActions):
         """
         Step the environments synchronously.
 
         This is available for backwards compatibility.
         """
-        self.step_async(actions)
+        self.step_async(LeftActions, RightActions)
         return self.step_wait()
 
     def render(self, mode='human'):
@@ -666,8 +666,8 @@ class DummyVecEnv(ShareVecEnv):
             env_fns), env.observation_space, env.share_observation_space, env.action_space)
         self.actions = None
 
-    def step_async(self, actions):
-        self.actions = actions
+    def step_async(self, ActionsLeft, ActionsRight):
+        self.actions = ActionsLeft+ActionsRight
 
     def step_wait(self):
         results = [env.step(a) for (a, env) in zip(self.actions, self.envs)]
@@ -710,34 +710,45 @@ class ShareDummyVecEnv(ShareVecEnv):
         ShareVecEnv.__init__(self, len(
             env_fns), env.observation_space, env.share_observation_space, env.action_space)
         self.actions = None
+        self.leftAction = None
+        self.rightAction = None
 
-    def step_async(self, actions):
-        self.actions = actions
+    def step_async(self,  LeftActions, RightActions):
+        # self.actions = actions
+        self.leftAction = LeftActions
+        self.rightAction = RightActions
 
     def step_wait(self):
-        results = [env.step(a) for (a, env) in zip(self.actions, self.envs)]
-        obs, share_obs, rews, dones, infos, available_actions = map(
+        results = [env.step(a,b) for (a,b,env) in zip(self.leftAction, self.rightAction, self.envs)]
+        # print(len(*results))
+        obs, opp_obs, agent_state, enemy_state, rews, dones, infos, available_actions, avail_enemy_actions = map(
             np.array, zip(*results))
 
         for (i, done) in enumerate(dones):
             if 'bool' in done.__class__.__name__:
                 if done:
-                    obs[i], share_obs[i], available_actions[i] = self.envs[i].reset()
+                    obs[i], opp_obs[i], agent_state[i], enemy_state[i], available_actions[i], avail_enemy_actions[i] = self.envs[i].reset()
             else:
                 if np.all(done):
-                    obs[i], share_obs[i], available_actions[i] = self.envs[i].reset()
+                    obs[i], opp_obs[i], agent_state[i], enemy_state[i], available_actions[i], avail_enemy_actions[i] = self.envs[i].reset()
         self.actions = None
 
-        return obs, share_obs, rews, dones, infos, available_actions
+        return obs, opp_obs, agent_state, enemy_state, rews, dones, infos, available_actions, avail_enemy_actions
 
     def reset(self):
+        print(self.envs)
         results = [env.reset() for env in self.envs]
-        obs, share_obs, available_actions = map(np.array, zip(*results))
-        return obs, share_obs, available_actions
+        obs, enemy_obs, agent_state, enemy_state, available_actions, avail_enemy_actions = map(np.array, zip(*results))
+        return obs, enemy_obs, agent_state, enemy_state, available_actions, avail_enemy_actions
+    
 
     def close(self):
         for env in self.envs:
             env.close()
+
+    def save_replay(self):
+        for env in self.envs:
+            env.save_replay()
     
     def render(self, mode="human"):
         if mode == "rgb_array":

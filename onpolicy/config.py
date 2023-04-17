@@ -175,7 +175,7 @@ def get_config():
                         help="Number of parallel envs for rendering rollouts")
     parser.add_argument("--num_env_steps", type=int, default=10e6,
                         help='Number of environment steps to train (default: 10e6)')
-    parser.add_argument("--user_name", type=str, default='marl',help="[for wandb usage], to specify user's name for simply collecting training data.")
+    parser.add_argument("--user_name", type=str, default='gm88s',help="[for wandb usage], to specify user's name for simply collecting training data.")
     parser.add_argument("--use_wandb", action='store_false', default=True, help="[for wandb usage], by default True, will log date to wandb server. or else will use tensorboard to log data.")
 
     # env parameters
@@ -283,5 +283,8 @@ def get_config():
 
     # pretrained parameters
     parser.add_argument("--model_dir", type=str, default=None, help="by default None. set the path to pretrained model.")
+    
+    # multiplayer parameters
+    parser.add_argument("--opponent_dir", type=str, default='/home/gmoore/Dev/MappoDev/mappo/onpolicy/scripts/results/StarCraft2/8m/rmappo/check/wandb/run-20230331_164614-f3rsdsfk/files/', help="by default None. set the path to opposition model.")
 
     return parser

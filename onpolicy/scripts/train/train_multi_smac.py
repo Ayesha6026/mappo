@@ -8,9 +8,8 @@ import numpy as np
 from pathlib import Path
 import torch
 from onpolicy.config import get_config
-# from onpolicy.envs.starcraft2.StarCraft2_Env import StarCraft2Env
-from onpolicy.envs.starcraft2.StarCraft2_Env_multiplayer import StarCraft2Env
-from onpolicy.envs.starcraft2.smac_maps import get_map_params
+from onpolicy.envs.multistarcraft2.StarCraft2_Env import StarCraft2Env
+from onpolicy.envs.multistarcraft2.smac_maps import get_map_params
 from onpolicy.envs.env_wrappers import ShareSubprocVecEnv, ShareDummyVecEnv
 
 """Train script for SMAC."""
@@ -66,7 +65,6 @@ def parse_args(args, parser):
     parser.add_argument("--use_state_agent", action='store_false', default=True)
     parser.add_argument("--use_mustalive", action='store_false', default=True)
     parser.add_argument("--add_center_xy", action='store_false', default=True)
-    parser.add_argument("--jumpstart_model_dir")
 
     all_args = parser.parse_known_args(args)[0]
 
@@ -148,22 +146,19 @@ def main(args):
     envs = make_train_env(all_args)
     eval_envs = make_eval_env(all_args) if all_args.use_eval else None
     num_agents = get_map_params(all_args.map_name)["n_agents"]
-    num_enemies = get_map_params(all_args.map_name)["n_enemies"]
-    print('smac map details  == ', get_map_params(all_args.map_name))
 
     config = {
         "all_args": all_args,
         "envs": envs,
         "eval_envs": eval_envs,
         "num_agents": num_agents,
-        "num_enemies": num_enemies,
         "device": device,
         "run_dir": run_dir
     }
 
     # run experiments
     if all_args.share_policy:
-        from onpolicy.runner.shared.smac_runner_mp import SMACRunner as Runner
+        from onpolicy.runner.shared.smac_runner import SMACRunner as Runner
     else:
         from onpolicy.runner.separated.smac_runner import SMACRunner as Runner
 
